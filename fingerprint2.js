@@ -106,6 +106,10 @@
       keys = this.hasLiedOsKey(keys);
       keys = this.hasLiedBrowserKey(keys);
       keys = this.touchSupportKey(keys);
+      keys = this.cookieEnabledKey(keys);
+      keys = this.javaEnabledKey(keys);
+      keys = this.flashVersionKey(keys);
+      keys = this.localTimeKey(keys);
       var that = this;
       this.fontsKey(keys, function(newKeys){
         var values = [];
@@ -119,6 +123,73 @@
         var murmur = that.x64hash128(values.join("~~~"), 31);
         return done(murmur, newKeys);
       });
+    },
+    cookieEnabledKey: function (keys) {
+      if(!this.options.excludeCookieEnabled) {
+        keys.push({key: "cookie_enabled", value: this.getCookieEnabled()});
+      }
+      return keys;
+    },
+    getCookieEnabled: function() {
+      var cookieEnabled = navigator.cookieEnabled;
+
+      if (typeof cookieEnabled === 'undefined' && !cookieEnabled) {
+        document.cookie = 'testcookie';
+        cookieEnabled = document.cookie.indexOf('testcookie') !== -1;
+      }
+      return cookieEnabled;
+    },
+    javaEnabledKey: function (keys) {
+      if(!this.options.excludeJavaEnabled) {
+        keys.push({key: "java_enabled", value: this.getJavaEnabled()});
+      }
+      return keys;
+    },
+    getJavaEnabled: function () {
+      return !!navigator.javaEnabled();
+    },
+    flashVersionKey: function (keys) {
+      if(!this.options.excludeFlashVersion) {
+        keys.push({key: "flash_version", value: this.getFlashVersion()});
+      }
+      return keys;
+    },
+    getFlashVersion: function () {
+      var activeXObj, plugins, plugin, result;
+      if (navigator.plugins && navigator.plugins.length > 0) {
+        plugins = navigator.plugins;
+        for (var i = 0; i < plugins.length && !result; i++) {
+          plugin = plugins[i];
+          if (plugin.name.indexOf("Shockwave Flash") > -1) {
+            result = plugin.description.split("Shockwave Flash ")[1];
+          }
+        }
+      } else {
+        plugin = "ShockwaveFlash.ShockwaveFlash";
+        try {
+          activeXObj = new ActiveXObject(plugin + ".7"), result = activeXObj.GetVariable("$version")
+        } catch (e) {}
+
+        if (!result) try {
+          activeXObj = new ActiveXObject(plugin + ".6"), result = "WIN 6,0,21,0", activeXObj.AllowScriptAccess = "always", result = activeXObj.GetVariable("$version")
+        } catch (e) {}
+
+        if (!result) try {
+          activeXObj = new ActiveXObject(plugin), result = activeXObj.GetVariable("$version")
+        } catch (e) {}
+
+        result && (result = result.split(" ")[1].split(","), result = result[0] + "." + result[1] + " r" + result[2])
+      }
+      return result ? result : -1;
+    },
+    localTimeKey: function (keys) {
+      if(!this.options.excludeUserAgent) {
+        keys.push({key: "local_time", value: this.getLocalTime()});
+      }
+      return keys;
+    },
+    getLocalTime: function() {
+      return new Date().toString();
     },
     userAgentKey: function(keys) {
       if(!this.options.excludeUserAgent) {
